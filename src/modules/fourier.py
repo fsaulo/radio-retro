@@ -8,7 +8,6 @@ Licença BSD ou parecida.
 '''
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 def index2d(mat):
     try:
@@ -52,7 +51,7 @@ def idft(vet):
     return xx
 
 if __name__ == '__main__':
-    from misc import print_matrix, masknan
+    import matplotlib.pyplot as plt
     tf = 2
     fa = 30
     N = tf*fa
