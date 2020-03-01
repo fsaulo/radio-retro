@@ -12,7 +12,6 @@ def binary_signal(bit_stream, fs, Bd):
 
 def encode_ascii(msg, reverse=False):
     stream = ''.join(f'{ord(i):08b}' for i in msg)
-    # stream = stream[::-1]
     return stream if not reverse else stream[::-1]
 
 def decode_ascii(bit_stream):
