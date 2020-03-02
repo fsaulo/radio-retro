@@ -85,6 +85,7 @@ class Receiver():
         self.THRESHOLD = 6
         self.MESSAGE = None
         self.ENCODED_SIGNAL = None
+        self.vetor = None
 
     def set_baud(self, Bd=50):
         self.BAUD = Bd
@@ -138,7 +139,9 @@ class Receiver():
             # self.MESSAGE = fsk.decode_ascii(encoded_msg)
             # print(self.MESSAGE, flush=True, end='')
             try:
+                S=[]
                 while True:
+<<<<<<< HEAD
                     data = np.array(mic.get_mic_data(chunk=chunk))
                     tone = data * (2**15 - 1) / np.max(np.abs(data))
                     tone = tone.astype(np.int16)
@@ -146,8 +149,16 @@ class Receiver():
                     print(f'Tentando sincronizar... {encoded_msg}', end='\r', flush=True)
                     # time.sleep(1/Bd)
                     if encoded_msg == '1101000111010001':
+=======
+                    data = np.array(mic.get_mic_data(chunk=chunk))/2**15
+                    if fsk.sintonizado(data, 44100, 3400, 200, 500,5):
+                        print("Sintonizado")
+>>>>>>> 7ba0c553908c570c210fbf3f0a26a6813672440c
                         break
+                    else:
+                        continue
                 while True:
+<<<<<<< HEAD
                     data = np.array(mic.get_mic_data(chunk=chunk))
                     tone = data * (2**15 - 1) / np.max(np.abs(data))
                     tone = tone.astype(np.int16)
@@ -159,8 +170,18 @@ class Receiver():
                     else:
                         print(byte, end='', flush=True)
                         # print(len(encoded_msg), flush=True, end='\n')
+=======
+                    if  fsk.sintonizado(data, 44100, 3800, 200, 500,5):
+                        print("Fim da transmissão")
+                        break
+                    else:
+                        data = np.array(mic.get_mic_data(chunk=chunk))/2**15
+                        C, encoded_msg = fsk.demodulate(data, fs, Bd, carrier, threshold, bandwidth, N)
+                        byte = fsk.decode_ascii(encoded_msg)
+>>>>>>> 7ba0c553908c570c210fbf3f0a26a6813672440c
             except KeyboardInterrupt:
-                print('Fim da transmissão')
+                print('Transmissão encerrada')
+                print(byte)
             self.ENCODED_SIGNAL = C
         if nparray is not None:
             C, encoded_msg = fsk.demodulate(nparray, fs, Bd, carrier, threshold, bandwidth, N)
@@ -172,6 +193,7 @@ class Receiver():
         return self.ENCODED_SIGNAL
 
 if __name__ == '__main__':
+<<<<<<< HEAD
     modem = Transmitter()
     modem.config(Bd=10, carrier=1200)
     modem.send_generic_message('Hello world!')
@@ -182,3 +204,20 @@ if __name__ == '__main__':
     # receiver = Receiver()
     # receiver.tune(Bd=10, carrier=1200, threshold=8)
     # receiver.listen()
+=======
+    #modem = Transmitter()
+    #modem.config(Bd=50)
+    #modem.send_generic_message('Enviando uma mensagem muito mais longa mas lentamente§')
+    #s = modem.get_transmitting_signal()
+
+    #sn = fsk.set_frequency_trailer(fsk.set_frequency_header(s))
+    #from scipy.io import wavfile
+
+    #wavfile.write('../../resources/audios/encoded_msgbd50ascii.wav', 44100, sn)
+
+
+    #
+    receiver = Receiver()
+    receiver.tune(Bd=50, threshold=7)
+    receiver.listen()
+>>>>>>> 7ba0c553908c570c210fbf3f0a26a6813672440c
