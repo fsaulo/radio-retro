@@ -6,13 +6,14 @@ import numpy as np
 import sounddevice as sd
 import time
 import fsk
+import microphone
 
 from sinais import specgram, bandpass
 
 fc = 44100
-Bd = 50
+Bd = 1200
 carrier = 1200
-N = 300
+N = 500
 bandwidth = carrier/2 + carrier*0.1
 print('### BAUD {} CARRIER {}Hz ###'.format(str(Bd), str(carrier)))
 
@@ -43,15 +44,22 @@ print('Bitstream da mensagem original \n{}\n'.format(bmsg))
 #     print(fsk.decode_ascii(encoded_msg), end='', flush=True)
 
 
-s = fsk.generate_tones(bmsg, fc, Bd, carrier)
-white_noise = np.random.normal(0, 0.5, size=len(s))*0
-s = s + white_noise
+# s = fsk.generate_tones(bmsg, fc, Bd, carrier)
+# white_noise = np.random.normal(0, 0.5, size=len(s))*0
+# s = s + white_noise
+mic = microphone.Microphone()
+s = np.array(mic.get_mic_data())
+C, encoded_msg = fsk.demodulate(s, fc, Bd, carrier, 500, bandwidth, N)
 
-C, encoded_msg = fsk.demodulate(s, fc, Bd, carrier, 5, bandwidth, N)
-# encoded_msg = encoded_msg[::-1]
+# self.MESSAGE = fsk.decode_ascii(encoded_msg)
+# print(self.MESSAGE, flush=True, end='')
+
+# C, encoded_msg = fsk.demodulate(s, fc, Bd, carrier, 5, bandwidth, N)
 string = ''.join([chr(int(encoded_msg[i:i+8],2)) for i in range(0,len(encoded_msg),8)])
 
-print('Mensagem original:     {}\n'.format(msg))
+# print('Mensagem original:     {}\n'.format(msg))
 print('Mensagem decodificada: {}\n'.format(string))
 
 print('Tamanho do sinal transmitido: {}Mb'.format(str(s.nbytes/1e6)))
+plt.plot(C)
+plt.show()

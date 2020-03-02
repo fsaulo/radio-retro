@@ -63,7 +63,7 @@ class Transmitter:
         fs = self.RATE
         carrier = self.CARRIER
         Bd = self.BAUD
-        bmsg = '11010001' + fsk.encode_ascii(msg)
+        bmsg = '1101000111010001' + fsk.encode_ascii(msg)
         print(bmsg)
         sys.stdout.write('### BAUD {} CARRIER {}Hz ###\n'.format(str(Bd), str(carrier)))
         sys.stdout.flush()
@@ -104,10 +104,12 @@ class Receiver():
     def set_threshold(self, th):
         self.THRESHOLD = th
 
-    def tune(self, Bd, fa=None, bandwidth=None, threshold=None, N=None):
+    def tune(self, Bd, fa=None, carrier=None, bandwidth=None, threshold=None, N=None):
         self.set_baud(Bd)
         if fa is not None:
             self.set_frequency_sampling(fa)
+        if carrier is not None:
+            self.set_carrier(carrier)
         if bandwidth is not None:
             self.set_bandwidth(bandwidth)
         if threshold is not None:
@@ -127,49 +129,56 @@ class Receiver():
         if nparray or file is None:
             mic = microphone.Microphone()
             chunk = round(fs/Bd)*8
-            print(f"### BAUD {Bd} @ CARRIER {carrier} Hz")
-            # data = np.array(mic.get_mic_data())/2**15
+            # print(f"### BAUD {Bd} @ CARRIER {carrier} Hz")
+            # data = np.array(mic.get_mic_data(chunk))
             # C, encoded_msg = fsk.demodulate(data, fs, Bd, carrier, threshold, bandwidth, N)
-            # plt.plot(C)
+            # print(encoded_msg, len(C), chunk)
+            # plt.plot(data)
             # plt.show()
             # self.MESSAGE = fsk.decode_ascii(encoded_msg)
             # print(self.MESSAGE, flush=True, end='')
             try:
                 while True:
-                    data = np.array(mic.get_mic_data(chunk=chunk))/2**15
-                    C, encoded_msg = fsk.demodulate(data, fs, Bd, carrier, threshold, bandwidth, N)
+                    data = np.array(mic.get_mic_data(chunk=chunk))
+                    tone = data * (2**15 - 1) / np.max(np.abs(data))
+                    tone = tone.astype(np.int16)
+                    C, encoded_msg = fsk.demodulate(tone, fs, Bd, carrier, threshold, bandwidth, N)
                     print(f'Tentando sincronizar... {encoded_msg}', end='\r', flush=True)
-                    time.sleep(1/Bd)
-                    if encoded_msg == '11010001':
+                    # time.sleep(1/Bd)
+                    if encoded_msg == '1101000111010001':
                         break
                 while True:
-                    data = np.array(mic.get_mic_data(chunk=chunk))/2**15
-                    C, encoded_msg = fsk.demodulate(data, fs, Bd, carrier, threshold, bandwidth, N)
+                    data = np.array(mic.get_mic_data(chunk=chunk))
+                    tone = data * (2**15 - 1) / np.max(np.abs(data))
+                    tone = tone.astype(np.int16)
+                    C, encoded_msg = fsk.demodulate(tone, fs, Bd, carrier, threshold, bandwidth, N)
                     byte = fsk.decode_ascii(encoded_msg)
-                    time.sleep(1/Bd)
-                    if byte == '§':
+                    # time.sleep(1/Bd)
+                    if '§' in byte:
                         break
                     else:
-                        print(len(encoded_msg), flush=True, end='\n')
+                        print(byte, end='', flush=True)
+                        # print(len(encoded_msg), flush=True, end='\n')
             except KeyboardInterrupt:
                 print('Fim da transmissão')
             self.ENCODED_SIGNAL = C
         if nparray is not None:
             C, encoded_msg = fsk.demodulate(nparray, fs, Bd, carrier, threshold, bandwidth, N)
             self.MESSAGE = fsk.decode_ascii(encoded_msg)
+            self.ENCODED_SIGNAL = C
             print(self.MESSAGE, flush=True, end='')
 
     def get_received_encoded_signal(self):
         return self.ENCODED_SIGNAL
 
 if __name__ == '__main__':
-    # modem = Transmitter()
-    # modem.config(Bd=500)
-    # modem.send_generic_message('Enviando uma mensagem muito mais longa mas lentamente§')
-    # s = modem.get_transmitting_signal()
-    # from scipy.io import wavfile
-    # wavfile.write('../../resources/audios/encoded_msgbd500ascii.wav', 44100, s)
+    modem = Transmitter()
+    modem.config(Bd=10, carrier=1200)
+    modem.send_generic_message('Hello world!')
+    s = modem.get_transmitting_signal()
+    from scipy.io import wavfile
+    wavfile.write('../../resources/audios/encoded_msgbd10ascii.wav', 44100, s)
     #
-    receiver = Receiver()
-    receiver.tune(Bd=500, threshold=10)
-    receiver.listen()
+    # receiver = Receiver()
+    # receiver.tune(Bd=10, carrier=1200, threshold=8)
+    # receiver.listen()

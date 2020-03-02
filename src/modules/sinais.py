@@ -10,7 +10,7 @@ import fourier
 import matplotlib.pyplot as plt
 from matplotlib import colors
 
-def specgram(data, fa=44100, period=20e-3, windowing=0.8):
+def specgram(data, fa=44100, window=20e-3, overlapping=0.8):
     """ Computes the spectrogram using the Short-time Fourier Transform
 
     ----------
@@ -25,8 +25,8 @@ def specgram(data, fa=44100, period=20e-3, windowing=0.8):
     Parameters
     data: One-dimensional array
     fa: Frequency sampling rate
-    timing: Period of time between each computation of the FT in seconds
-    windowing: A floating point that represents the percentage of the width of
+    window: Period of time between each computation of the FT in seconds
+    overlapping: A floating point that represents the percentage of the width of
         the chosen short-time window that will be overlaped measured in samples
 
     """
@@ -124,11 +124,11 @@ def blackman_window(fa, N):
 
 def rms(x):
     return np.sqrt(np.mean(x**2))
-    
+
 if __name__== '__main__':
     fa = 4400
     t = np.arange(0, 2, 1/fa)
     s = np.cos(2*np.pi*250*t)*np.heaviside(-(t-0.5), 1) + \
     np.cos(2*np.pi*100*t*t*t)*np.heaviside(t-0.5, 1) + \
     np.cos(2*np.pi*600*t)*np.heaviside(t-1, 1)
-    S = specgram(s, fa, 20e-3,0.1)
+    specgram(s, fa, 20e-3,0.1)

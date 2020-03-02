@@ -15,7 +15,7 @@ class Microphone(object):
             channels=self.CHANNELS,
             rate=self.RATE,
             input=True,
-            output=True,
+            output=False,
             frames_per_buffer=self.CHUNK,
         )
 
