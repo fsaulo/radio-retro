@@ -1,6 +1,7 @@
 import sinais as sn
 import numpy as np
 import matplotlib.pyplot as plt
+
 def binary_signal(bit_stream, fs, Bd):
     k = len(bit_stream)
     n = round(fs/Bd) * k
@@ -10,20 +11,20 @@ def binary_signal(bit_stream, fs, Bd):
         X[i*samples:(i+1)*samples] = np.ones(samples) * int(bit_stream[i])
     return X
 
-def set_frequency_header(sig):
+def set_frequency_header(sig, Bd=10):
     fx = 3400
     fa = 44100
-    t = np.arange(0,0.2,1/fa)
+    t = np.arange(0,2*1/Bd,1/fa)
     y = np.cos(np.pi*2*fx*t)
     d = np.zeros(len(sig)+len(y))
     d[0:len(y)] = y
     d[len(y):len(d)] = sig
     return d
 
-def set_frequency_trailer(sig):
+def set_frequency_trailer(sig, Bd=10):
     fx = 3800
     fa = 44100
-    t = np.arange(0,0.2,1/fa)
+    t = np.arange(0,2*1/Bd,1/fa)
     y = np.cos(np.pi*2*fx*t)
     d = np.zeros(len(sig)+len(y))
     d[0:len(sig)] = sig
@@ -44,18 +45,29 @@ def generate_tones(bit_stream, fs=44100, Bd=1200, carrier=1200):
     fc = (bin_wave + 1) * carrier
     return np.cos(2*np.pi*fc*t)
 
-def sanduiche_encoding(sig):
-    sig = set_frequency_header(sig)
-    return set_frequency_trailer(sig)
+def sanduiche_encoding(sig, Bd=10):
+    sig = set_frequency_header(sig, Bd)
+    return set_frequency_trailer(sig, Bd)
 
 def sintonizado(s, fa, carrier, bandwidth, N, threshold):
+    if (np.max(np.abs(s)) > 2**14):
+        s = s/2**15
     x1 = sn.bandpass(s, fa, carrier, bandwidth, N)
     energia = sn.rms(x1**2)
-    # print(energia)
     if energia > threshold:
         return True
     else:
         return False
+
+def decode_sanduiche(bit_stream):
+    bit_stream = [bit for bit in bit_stream]
+    # print(len(bit_stream))
+    for k in range(0, len(bit_stream)):
+        byte = ''.join(bit for bit in bit_stream[k:8+k])
+        if byte == '11010001':
+            bit_stream = bit_stream[k+8:len(bit_stream)]
+            break
+    return ''.join(bit for bit in bit_stream)
 
 def demodulate(s, fa, Bd, carrier, threshold=4, bandwidth=500, N=300):
     x0 = sn.bandpass(s, fa, carrier, bandwidth, N)
