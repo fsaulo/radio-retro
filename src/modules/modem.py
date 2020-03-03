@@ -48,7 +48,7 @@ class Transmitter:
             else:
                 byte += bit
 
-        sys.stdout.write('### BAUD {} CARRIER {}Hz ###\n'.format(str(Bd), str(carrier)))
+        sys.stdout.write('### BAUD {} @ CARRIER {}Hz ###\n'.format(str(Bd), str(carrier)))
         sys.stdout.flush()
 
         for byte in bytearray:
@@ -65,7 +65,7 @@ class Transmitter:
         Bd = self.BAUD
         bmsg = '11010001' + fsk.encode_ascii(msg)
         if debug: print(bmsg)
-        sys.stdout.write('### BAUD {} CARRIER {}Hz ###\n'.format(str(Bd), str(carrier)))
+        sys.stdout.write(f'### BAUD {Bd} CARRIER {carrier}Hz ###\n')
         sys.stdout.flush()
 
         s = fsk.generate_tones(bmsg, fs, Bd, carrier)
@@ -139,7 +139,7 @@ class Receiver():
                     data = np.array(mic.get_mic_data(chunk=chunk))
                     tone = data * (2**15 - 1) / np.max(np.abs(data))
                     tone = tone.astype(np.int16)
-                    if fsk.sintonizado(tone, fs, 3400, 20, 200, 80):
+                    if fsk.sintonizado(tone, fs, 3400, 20, N, 80):
                         print(f'### BAUD {Bd} @ CARRIER {carrier} Hz')
                         break
                 while True:
@@ -147,7 +147,7 @@ class Receiver():
                     data = np.array(mic.get_mic_data(chunk=chunk))
                     tone = data * (2**15 - 1) / np.max(np.abs(data))
                     tone = tone.astype(np.int16)
-                    if fsk.sintonizado(tone, fs, 3800, 20, 500, 80):
+                    if fsk.sintonizado(tone, fs, 3800, 20, N, 80):
                         C, encoded_msg = fsk.demodulate(S, fs, Bd, carrier, threshold, bandwidth, N)
                         msg = fsk.decode_sanduiche(encoded_msg)
                         msg = fsk.decode_ascii(msg)
@@ -172,13 +172,13 @@ class Receiver():
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
-    modem = Transmitter()
-    modem.config(Bd=100, carrier=1200)
-    modem.send_generic_message('In order to use this binary to ascii text converter tool, type a binary value, i.e. 011110010110111101110101, to get "you" and push the convert button. You can convert up to 1024 binary characters to ascii text. Decode binary to ascii text readable format.')
-    s = modem.get_transmitting_signal()
-    from scipy.io import wavfile
-    wavfile.write('../../resources/audios/encoded_msgbd100ascii.wav', 44100, s)
+    # modem = Transmitter()
+    # modem.config(Bd=100, carrier=1200)
+    # modem.send_generic_message('Hello world')
+    # s = modem.get_transmitting_signal()
+    # from scipy.io import wavfile
+    # wavfile.write('../../resources/audios/encoded_msgbd100ascii.wav', 44100, s)
 
-    # receiver = Receiver()
-    # receiver.tune(Bd=100, threshold=6)
-    # receiver.listen()
+    receiver = Receiver()
+    receiver.tune(Bd=100, threshold=5)
+    receiver.listen()
