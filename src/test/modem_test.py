@@ -141,33 +141,36 @@ class Receiver():
             # self.MESSAGE = fsk.decode_ascii(encoded_msg)
             # print(self.MESSAGE, flush=True, end='')
             try:
-                S = np.array([])
+                S=[]
                 while True:
                     print('Procurando sinal... ', end='\r', flush=True)
-                    tone = np.array(mic.get_mic_data(chunk=chunk))/2**15
-                    # if np.max(np.abs(data)) != 0:
-                    #     tone = data * (2**15 - 1) / np.max(np.abs(data))
-                    # else:
-                    #     tone = data
+                    data = np.array(mic.get_mic_data(chunk=chunk))
                     # tone = tone.astype(np.int16)
-                    if fsk.sintonizado(tone, fs, 3400, 50, 200, 80):
-                        print(f'### BAUD {Bd} @ CARRIER {carrier} Hz')
+                    tone = data * (2**15 - 1) / np.max(np.abs(data))
+                    if fsk.sintonizado(tone, fs, 3400, 200, 500, 5):
+                        print(f'### BAUD {BD} @ CARRIER {fs} Hz')
                         break
+                    else:
+                        continue
                 while True:
-                    print('Recebendo mensagem... ', end='\r', flush=True)
-                    tone = np.array(mic.get_mic_data(chunk=chunk))/2**15
-                    # if np.max(np.abs(data)) != 0:
-                    #     tone = data * (2**15 - 1) / np.max(np.abs(data))
-                    # else:
-                    #     tone = data
+                    data = np.array(mic.get_mic_data(chunk=chunk))
+                    tone = data * (2**15 - 1) / np.max(np.abs(data))
                     # tone = tone.astype(np.int16)
                     C, encoded_msg = fsk.demodulate(tone, fs, Bd, carrier, threshold, bandwidth, N)
                     byte = fsk.decode_ascii(encoded_msg)
-                    if fsk.sintonizado(tone, 44100, 3800, 50, 200, 80):
+                    # time.sleep(1/Bd)
+                    if '§' in byte:
+                        break
+                    else:
+                        print(byte, end='', flush=True)
+                        # print(len(encoded_msg), flush=True, end='\n')
+                    if  fsk.sintonizado(data, 44100, 3800, 200, 500,5):
                         print("Fim da transmissão")
                         break
                     else:
-                        S = np.append(S, C)
+                        data = np.array(mic.get_mic_data(chunk=chunk))/2**15
+                        C, encoded_msg = fsk.demodulate(data, fs, Bd, carrier, threshold, bandwidth, N)
+                        byte = fsk.decode_ascii(encoded_msg)
             except KeyboardInterrupt:
                 print('Transmissão encerrada')
                 print(byte)
@@ -182,16 +185,16 @@ class Receiver():
         return self.ENCODED_SIGNAL
 
 if __name__ == '__main__':
-    # import matplotlib.pyplot as plt
-    # modem = Transmitter()
-    # modem.config(Bd=10, carrier=1200)
-    # modem.send_generic_message('Hello world!')
-    # s = modem.get_transmitting_signal()
-    # plt.plot(s)
-    # plt.show()
-    # from scipy.io import wavfile
-    # wavfile.write('../../resources/audios/encoded_msgbd10ascii.wav', 44100, s)
+    import matplotlib.pyplot as plt
+    modem = Transmitter()
+    modem.config(Bd=10, carrier=1200)
+    modem.send_generic_message('Hello world!')
+    s = modem.get_transmitting_signal()
+    plt.plot(s)
+    plt.show()
+    from scipy.io import wavfile
+    wavfile.write('../../resources/audios/encoded_msgbd10ascii.wav', 44100, s)
 
-    receiver = Receiver()
-    receiver.tune(Bd=10, threshold=7)
-    receiver.listen()
+    # receiver = Receiver()
+    # receiver.tune(Bd=50, threshold=7)
+    # receiver.listen()

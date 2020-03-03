@@ -9,6 +9,7 @@ def binary_signal(bit_stream, fs, Bd):
     for i in range(0, k):
         X[i*samples:(i+1)*samples] = np.ones(samples) * int(bit_stream[i])
     return X
+
 def set_frequency_header(sig):
     fx = 3400
     fa = 44100
@@ -18,6 +19,7 @@ def set_frequency_header(sig):
     d[0:len(y)] = y
     d[len(y):len(d)] = sig
     return d
+
 def set_frequency_trailer(sig):
     fx = 3800
     fa = 44100
@@ -41,14 +43,20 @@ def generate_tones(bit_stream, fs=44100, Bd=1200, carrier=1200):
     t = np.linspace(0, len(bit_stream)/Bd, len(bin_wave))
     fc = (bin_wave + 1) * carrier
     return np.cos(2*np.pi*fc*t)
+
+def sanduiche_encoding(sig):
+    sig = set_frequency_header(sig)
+    return set_frequency_trailer(sig)
+
 def sintonizado(s, fa, carrier, bandwidth, N, threshold):
-    x1 = sn.bandpass(s,fa,carrier, bandwidth, N)
+    x1 = sn.bandpass(s, fa, carrier, bandwidth, N)
     energia = sn.rms(x1**2)
-    #print(energia)
+    # print(energia)
     if energia > threshold:
         return True
     else:
         return False
+
 def demodulate(s, fa, Bd, carrier, threshold=4, bandwidth=500, N=300):
     x0 = sn.bandpass(s, fa, carrier, bandwidth, N)
     x1 = sn.bandpass(s, fa, 2*carrier, bandwidth, N)
