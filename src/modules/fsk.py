@@ -61,7 +61,6 @@ def sintonizado(s, fa, carrier, bandwidth, N, threshold):
 
 def decode_sanduiche(bit_stream):
     bit_stream = [bit for bit in bit_stream]
-    # print(len(bit_stream))
     for k in range(0, len(bit_stream)):
         byte = ''.join(bit for bit in bit_stream[k:8+k])
         if byte == '11010001':
@@ -91,22 +90,4 @@ def demodulate(s, fa, Bd, carrier, threshold=4, bandwidth=500, N=300):
     return C, encoded_msg
 
 if __name__ == '__main__':
-    # import matplotlib.pyplot as plt
-    # Bd = 1200
-    # fs = 44100
-    # s = generate_tones(encode_ascii('hello'), fs, Bd, 1200)
-    # plt.plot(s)
-    # plt.show()
-    #from scipy.io import wavfile
-    #[fa, s] = wavfile.read('../../resources/audios/encoded_msg_bd1200ascii.wav')
-    #C, encoded_msg = demodulate(s, fa, 1200, 1200, threshold=20, bandwidth=1000, N=300)
-    #print(decode_ascii(encoded_msg[::-1]))
-    t = np.linspace(0,0.05,44100)
-    sig = np.cos(2*np.pi*200*t)
-
-    s2 = set_frequency_trailer(set_frequency_header(sig))
-    if sintonizado(s2, 44100, 3800, 200, 500,687.841606187618):
-        print("sintonizado")
-
-    else:
-        print("não sintonizado")
+    pass
