@@ -14,7 +14,7 @@ def binary_signal(bit_stream, fs, Bd):
 def set_frequency_header(sig, Bd=10):
     fx = 3400
     fa = 44100
-    t = np.arange(0,2*1/Bd,1/fa)
+    t = np.arange(0,10*1/Bd,1/fa)
     y = np.cos(np.pi*2*fx*t)
     d = np.zeros(len(sig)+len(y))
     d[0:len(y)] = y
@@ -24,7 +24,7 @@ def set_frequency_header(sig, Bd=10):
 def set_frequency_trailer(sig, Bd=10):
     fx = 3800
     fa = 44100
-    t = np.arange(0,2*1/Bd,1/fa)
+    t = np.arange(0,10*1/Bd,1/fa)
     y = np.cos(np.pi*2*fx*t)
     d = np.zeros(len(sig)+len(y))
     d[0:len(sig)] = sig
@@ -74,8 +74,8 @@ def demodulate(s, fa, Bd, carrier, threshold=4, bandwidth=500, N=300):
     m = 0
     C = np.zeros(len(x1))
     encoded_msg = ''
-    samples_per_symbol = round(fa/Bd)
-    for k in range(0, round(len(x1)/samples_per_symbol)):
+    samples_per_symbol = int(np.floor(fa/Bd))
+    for k in range(0, int(np.floor(len(x1)/samples_per_symbol))):
         chunk = k*samples_per_symbol
         rms_0 = sn.rms(x1[chunk:chunk+samples_per_symbol]**2)
         rms_1 = sn.rms(x0[chunk:chunk+samples_per_symbol]**2)
