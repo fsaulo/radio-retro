@@ -12,28 +12,19 @@ class Transmitter:
         self.CARRIER = 1200
         self.TSIGNAL = None
 
-    def set_baud(self, Bd=50):
-        self.BAUD = Bd
-
-    def set_frequency_sampling(self, fa):
-        self.RATE = fa
-
-    def set_carrier(self, carrier):
-        self.CARRIER = carrier
-
     def config(self, Bd=None, fs=None, carrier=None):
         if Bd is not None:
-            self.set_baud(Bd)
+            self.BAUD = Bd
         if fs is not None:
-            self.set_frequency_sampling(fs)
+            self.RATE = fs
         if carrier is not None:
-            self.set_carrier(carrier)
+            self.CARRIER = carrier
 
     def get_transmitting_signal(self):
         return self.SIGNAL
 
     def send_text_message(self, msg):
-        bmsg = fsk.encode_ascii(msg)
+        bmsg = '11010001' + fsk.encode_ascii(msg)
         byte = ''
         bytearray = []
         fs = self.RATE
@@ -50,6 +41,9 @@ class Transmitter:
 
         sys.stdout.write('### BAUD {} @ CARRIER {}Hz ###\n'.format(str(Bd), str(carrier)))
         sys.stdout.flush()
+        s = fsk.set_frequency_header(np.zeros(0),Bd)
+        sd.play(s, fs)
+        status = sd.wait()
 
         for byte in bytearray:
             s = fsk.generate_tones(byte, fs, Bd, carrier)
@@ -59,13 +53,17 @@ class Transmitter:
             sd.play(tone, fs)
             status = sd.wait()
 
+        s = fsk.set_frequency_trailer(np.zeros(0),Bd)
+        sd.play(s, fs)
+        status = sd.wait()
+
     def send_generic_message(self, msg, debug=False):
         fs = self.RATE
         carrier = self.CARRIER
         Bd = self.BAUD
         bmsg = '11010001' + fsk.encode_ascii(msg)
         if debug: print(bmsg)
-        sys.stdout.write(f'### BAUD {Bd} CARRIER {carrier}Hz ###\n')
+        sys.stdout.write(f'### BAUD {Bd} @ CARRIER {carrier}Hz ###\n')
         sys.stdout.flush()
 
         s = fsk.generate_tones(bmsg, fs, Bd, carrier)
@@ -77,48 +75,48 @@ class Transmitter:
         sd.play(tone, fs)
         status = sd.wait()
 
+    def message_to_wav(self, msg):
+        fs = self.RATE
+        carrier = self.CARRIER
+        Bd = self.BAUD
+        bmsg = '11010001' + fsk.encode_ascii(msg)
+        sys.stdout.write(f'### BAUD {Bd} @ CARRIER {carrier}Hz ###\n')
+        sys.stdout.flush()
+
+        s = fsk.generate_tones(bmsg, fs, Bd, carrier)
+        s = fsk.sanduiche_encoding(s, Bd)
+        tone = s * (2**15 - 1) / np.max(np.abs(s))
+        tone = tone.astype(np.int16)
+        self.SIGNAL = tone
+
 class Receiver():
     def __init__(self):
         self.BAUD = 50
         self.RATE = 44100
         self.CARRIER = 1200
         self.FILTER_SIZE = 500
-        self.BANDWIDTH = 1000
-        self.THRESHOLD = 6
+        self.BANDWIDTH = 10
+        self.THRESHOLD = 8
         self.MESSAGE = None
         self.ENCODED_SIGNAL = None
         self.vetor = None
+        self.SINTONIA = 150
 
-    def set_baud(self, Bd=50):
-        self.BAUD = Bd
-
-    def set_frequency_sampling(self, fa):
-        self.RATE = fa
-
-    def set_carrier(self, carrier):
-        self.CARRIER = carrier
-
-    def set_bandwidth(self, bandwidth):
-        self.BANDWIDTH = bandwidth
-
-    def set_filter_size(self, N):
-        self.FILTER_SIZE = N
-
-    def set_threshold(self, th):
-        self.THRESHOLD = th
-
-    def tune(self, Bd, fa=None, carrier=None, bandwidth=None, threshold=None, N=None):
-        self.set_baud(Bd)
+    def tune(self, Bd=None, fa=None, carrier=None, bandwidth=None, threshold=None, N=None, sintonia=None):
+        if Bd is not None:
+            self.BAUD = Bd
         if fa is not None:
-            self.set_frequency_sampling(fa)
+            self.RATE = fa
         if carrier is not None:
-            self.set_carrier(carrier)
+            self.CARRIER = carrier
         if bandwidth is not None:
-            self.set_bandwidth(bandwidth)
+            self.BANDWIDTH = bandwidth
         if threshold is not None:
-            self.set_threshold(threshold)
+            self.THRESHOLD = threshold
         if N is not None:
-            self.set_filter_size(N)
+            self.FILTER_SIZE = N
+        if sintonia is not None:
+            self.SINTONIA = sintonia
 
     def listen(self, device='mic', nparray=None, file=None):
         import matplotlib.pyplot as plt
@@ -128,6 +126,7 @@ class Receiver():
         threshold=self.THRESHOLD
         bandwidth=self.BANDWIDTH
         N=self.FILTER_SIZE
+        sintonia=self.SINTONIA
 
         if nparray or file is None:
             mic = microphone.Microphone()
@@ -139,7 +138,7 @@ class Receiver():
                     data = np.array(mic.get_mic_data(chunk=chunk))
                     tone = data * (2**15 - 1) / np.max(np.abs(data))
                     tone = tone.astype(np.int16)
-                    if fsk.sintonizado(tone, fs, 3400, 20, N, 80):
+                    if fsk.sintonizado(tone, fs, 3400, 20, N, sintonia):
                         print(f'### BAUD {Bd} @ CARRIER {carrier} Hz')
                         break
                 while True:
@@ -147,7 +146,8 @@ class Receiver():
                     data = np.array(mic.get_mic_data(chunk=chunk))
                     tone = data * (2**15 - 1) / np.max(np.abs(data))
                     tone = tone.astype(np.int16)
-                    if fsk.sintonizado(tone, fs, 3800, 20, N, 80):
+                    if fsk.sintonizado(tone, fs, 3800, 20, N, sintonia):
+                        S = np.append(S, tone)
                         C, encoded_msg = fsk.demodulate(S, fs, Bd, carrier, threshold, bandwidth, N)
                         msg = fsk.decode_sanduiche(encoded_msg)
                         msg = fsk.decode_ascii(msg)
@@ -159,6 +159,7 @@ class Receiver():
                         S = np.append(S, tone)
             except KeyboardInterrupt:
                 print('Transmissão encerrada')
+                mic.close()
             self.ENCODED_SIGNAL = S
         if nparray is not None:
             C, encoded_msg = fsk.demodulate(nparray, fs, Bd, carrier, threshold, bandwidth, N)
@@ -172,13 +173,13 @@ class Receiver():
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
-    # modem = Transmitter()
-    # modem.config(Bd=100, carrier=1200)
-    # modem.send_generic_message('Hello world')
-    # s = modem.get_transmitting_signal()
-    # from scipy.io import wavfile
-    # wavfile.write('../../resources/audios/encoded_msgbd100ascii.wav', 44100, s)
+    modem = Transmitter()
+    modem.config(Bd=100, carrier=1200)
+    modem.send_generic_message('Hello world')
+    s = modem.get_transmitting_signal()
+    from scipy.io import wavfile
+    wavfile.write('../../resources/audios/encoded_msgbd100ascii.wav', 44100, s)
 
-    receiver = Receiver()
-    receiver.tune(Bd=100, threshold=5)
-    receiver.listen()
+    # receiver = Receiver()
+    # receiver.tune(Bd=100, threshold=5)
+    # receiver.listen()
